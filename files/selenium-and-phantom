@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# /etc/rc.d/init.d/selenium-and-phantom
+#
+# Selenium grid service and phantomjs Workers.
+# Files live under /local/selenium and /local/phantom
+#
+# chkconfig: 2345 95 20
+# description: Some description
+# What your script does (not sure if this is necessary though)
+# processname: myscript
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+case "$1" in
+	start)
+		if [ -a /var/lock/subsys/selenium-and-phantom ]; then
+			echo "Selenium Grid and PhantomJS Workers already running or stale lock file (restart service)"
+		else
+			echo -n "Starting Selenium Grid and PhantomJS Workers..."
+			su - selenium -c /local/selenium/start_selenium.sh
+			su - phantom -c /local/phantom/start_phantom.sh
+			touch /var/lock/subsys/selenium-and-phantom
+			echo "Done!"
+		fi
+	;;
+	stop)
+		echo -n "Killing Selenium Grid and PhantomJS Workers..."
+		killall phantomjs
+		kill -9 `ps -ef | grep selenium-server-standalone | grep -v grep | awk '{print $2}'`
+		rm -f /var/lock/subsys/selenium-and-phantom
+		echo "Done!"
+	;;
+	restart)
+		service selenium-and-phantom stop
+		service selenium-and-phantom start
+	;;
+	*)
+		echo "Usage: selenium-and-phantom {start|stop|restart}"
+		exit 1
+	;;
+esac

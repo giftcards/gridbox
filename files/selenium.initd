@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# /etc/init.d/selenium
+#
+# chkconfig: 345 48 64
+# description: start and stop selenium
+
+### BEGIN INIT INFO
+# Provides: selenium
+# Required-Start: $network $local_fs $remote_fs
+# Required-Stop: $network $local_fs $remote_fs
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 2 6
+# Short-Description: start and stop selenium
+# Description: Selenium is a portable software testing
+# framework for web applications.
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+# Get timeout
+. /etc/selenium.conf
+
+start() {
+  echo "Starting Selenium... "
+  /usr/bin/java -jar /local/gridbox/selenium.jar -role hub -timeout ${TIMEOUT} -browserTimeout ${TIMEOUT} &> /var/log/selenium.log &
+  echo $! > /var/run/selenium.pid
+  return $?
+}
+
+stop() {
+  echo "Stopping Selenium... "
+  kill -9 `cat /var/run/selenium.pid 2> /dev/null` &> /dev/null
+  return 0
+}
+
+check_status() {
+  echo -n "Selenium Status: "
+  kill -0 `cat /var/run/selenium.pid` &> /dev/null && echo "running ${pid}" || echo "running ${pid}"
+  return $?
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    check_status
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage:  {start|stop|status|restart}"
+    exit 1
+    ;;
+esac
+exit $?

@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# /etc/init.d/phantom
+#
+# chkconfig: 345 58 74
+# description: start and stop phantomjs workers
+
+### BEGIN INIT INFO
+# Provides: phantom
+# Required-Start: $network $local_fs $remote_fs
+# Required-Stop: $network $local_fs $remote_fs
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 2 6
+# Short-Description: start and stop phantomjs workers for selenium
+# Description: PhantomJS is a headless WebKit scriptable
+# with a JavaScript API. It has fast and native support for
+# various web standards: DOM handling, CSS selector, JSON,
+# Canvas, and SVG.
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+# Get phantom worker count
+. /etc/phantom.conf
+
+start() {
+  echo "Starting ${WORKERS} PhantomJS Workers... "
+  sleep 5
+  for i in `seq 1 ${WORKERS}`; do
+    if [ ${PROXY} == "none" ]; then
+      /local/gridbox/phantomjs \
+        --webdriver-selenium-grid-hub=http://${HOST}:4444 \
+        --webdriver localhost:555${i} &> /dev/null &
+    else
+      /local/gridbox/phantomjs \
+        --webdriver-selenium-grid-hub=http://${HOST}:4444 \
+        --webdriver localhost:555${i} \
+        --proxy=${PROXY} \
+        --proxy-type=http &> /dev/null &
+    fi
+  done
+  return $?
+}
+
+stop() {
+  echo "Stopping PhantomJS Workers... "
+  killall -9 phantomjs
+  return $?
+}
+
+check_status() {
+  COUNT=`ps -ef | grep phantomjs | grep -v grep | wc -l`
+  [[ $COUNT == $WORKERS ]] && \
+    echo "PhantomJS Workers Running (${COUNT} of ${WORKERS})" || \
+    echo "PhantomJS Workers NOT Running (${COUNT} of ${WORKERS})"
+  [[ $COUNT == $WORKERS ]] && \
+    return 0 || \
+    return 1
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    check_status
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage:  {start|stop|restart}"
+    exit 1
+    ;;
+esac
+exit $?
